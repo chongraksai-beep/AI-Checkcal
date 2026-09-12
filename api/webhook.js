@@ -104,7 +104,7 @@ async function analyzeFoodWithGemini(imageBuffer) {
   }
 }
 
-// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE
+// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบมีแบนเนอร์โฆษณา)
 async function replyFlexMessage(replyToken, data) {
   const flexMessage = {
     type: "flex",
@@ -157,29 +157,32 @@ async function replyFlexMessage(replyToken, data) {
           { type: "text", text: data.description, wrap: true, color: "#888888", size: "xs", margin: "xl" }
         ]
       },
+      // ส่วน Footer สำหรับใส่รูปแบนเนอร์โฆษณา
       footer: {
         type: "box",
         layout: "vertical",
         spacing: "sm",
+        paddingAll: "0px",
         contents: [
           {
-            type: "button",
-            style: "primary",
-            color: "#ff9900",
+            type: "image",
+            url: "https://img.freepik.com/free-vector/healthy-food-banner-template_23-2149021671.jpg", // ลิงก์รูปโฆษณา (ต้องเป็น https)
+            size: "full",
+            aspectRatio: "20:7",
+            aspectMode: "cover",
             action: {
               type: "uri",
-              label: "☕ เลี้ยงกาแฟ (Donate)",
-              uri: "https://promptpay.io/0985058698" // เปลี่ยนเป็นเบอร์พร้อมเพย์ของคุณ
+              label: "คลิกเพื่อดูโฆษณา",
+              uri: "https://shopee.co.th/" // ลิงก์ปลายทางเมื่อคนกดรูปโฆษณา
             }
           },
           {
-            type: "button",
-            style: "secondary",
-            action: {
-              type: "uri",
-              label: "👑 สมัคร Premium",
-              uri: "https://your-website.com/premium" // เปลี่ยนเป็นเว็บหรือรายละเอียดพรีเมียมในอนาคต
-            }
+            type: "text",
+            text: "SPONSORED",
+            color: "#cccccc",
+            size: "xxs",
+            align: "end",
+            margin: "sm"
           }
         ]
       }
@@ -199,7 +202,7 @@ async function replyFlexMessage(replyToken, data) {
   });
 }
 
-// ฟังก์ชันส่งข้อความธรรมดากลับไปที่ LINE
+// ฟังก์ชันส่งข้อความธรรมดาพร้อมปุ่ม Quick Reply ให้กดเปิดกล้องได้
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
@@ -209,7 +212,28 @@ async function replyText(replyToken, text) {
     },
     body: JSON.stringify({
       replyToken: replyToken,
-      messages: [{ type: "text", text: text }]
+      messages: [{ 
+        type: "text", 
+        text: text,
+        quickReply: {
+          items: [
+            {
+              type: "action",
+              action: {
+                type: "camera",
+                label: "📸 เปิดกล้องถ่ายรูป"
+              }
+            },
+            {
+              type: "action",
+              action: {
+                type: "cameraRoll",
+                label: "🖼️ เลือกจากอัลบั้ม"
+              }
+            }
+          ]
+        }
+      }]
     })
   });
 }
