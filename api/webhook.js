@@ -62,7 +62,7 @@ async function getLineImage(messageId) {
 // ฟังก์ชันส่งรูปให้ Gemini วิเคราะห์
 async function analyzeFoodWithGemini(imageBuffer) {
   // ของใหม่ (เปลี่ยนเป็นรุ่น pro)
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
    
   // สั่ง AI ให้ตอบกลับมาเป็น JSON เพื่อง่ายต่อการเอาไปจัดลง Flex Message
   const prompt = `
