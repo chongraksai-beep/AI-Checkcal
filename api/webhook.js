@@ -24,7 +24,7 @@ export default async function handler(req, res) {
           const aiResult = await analyzeFoodWithGemini(imageBuffer);
           await replyFlexMessage(replyToken, aiResult);
         } 
-        // ดักจับข้อความ
+        // ดักจับข้อความหรือปุ่ม Quick Reply ที่ผู้ใช้กดส่งมา
         else if (event.type === "message" && event.message.type === "text") {
           const userText = event.message.text.trim();
           
@@ -232,7 +232,7 @@ async function replyDonateFlex(replyToken) {
       },
       hero: {
         type: "image",
-        url: "https://promptpay.io/0985058698.png", // ดึง QR Code จาก Promptpay.io อัตโนมัติ
+        url: "https://promptpay.io/0985058698.png", 
         size: "full",
         aspectRatio: "1:1",
         aspectMode: "contain",
@@ -261,7 +261,7 @@ async function replyDonateFlex(replyToken) {
             color: "#1DB446",
             action: {
               type: "clipboard",
-              label: "📋 คัดลอกเบอร์พร้อมเพย์",
+              label: "📋 คัดลอกเบอร์",
               clipboardText: "0985058698" 
             }
           },
@@ -297,6 +297,7 @@ async function replyDonateFlex(replyToken) {
   }
 }
 
+// ฟังก์ชันส่งข้อความพร้อมปุ่ม Quick Reply (เพิ่มปุ่มโดเนทเข้าไปแล้ว)
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
@@ -323,6 +324,14 @@ async function replyText(replyToken, text) {
               action: {
                 type: "cameraRoll",
                 label: "🖼️ เลือกจากอัลบั้ม"
+              }
+            },
+            {
+              type: "action",
+              action: {
+                type: "message",
+                label: "☕ โดเนทสนับสนุน",
+                text: "โดเนท"
               }
             }
           ]
