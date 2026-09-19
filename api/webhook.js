@@ -61,9 +61,9 @@ async function getLineImage(messageId) {
 
 // ฟังก์ชันส่งรูปให้ Gemini วิเคราะห์
 async function analyzeFoodWithGemini(imageBuffer) {
+  // ใช้โมเดลรุ่นใหม่ล่าสุดตามที่ Google รองรับ
+  const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
   
-const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
-   
   // สั่ง AI ให้ตอบกลับมาเป็น JSON เพื่อง่ายต่อการเอาไปจัดลง Flex Message
   const prompt = `
     คุณคือนักโภชนาการเชี่ยวชาญอาหารไทย วิเคราะห์รูปอาหารนี้และประเมินแคลอรี
@@ -105,8 +105,32 @@ const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
   }
 }
 
-// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบมีแบนเนอร์โฆษณา)
+// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 async function replyFlexMessage(replyToken, data) {
+  
+  // 1. คลังโฆษณา Affiliate
+  const affiliateAds = [
+    {
+      label: "Xiaomi Mi Body Composition Scale S400 เครื่องชั่งน้ำหนักอัจฉริยะ",
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.webp", 
+      clickUrl: "https://s.shopee.co.th/BTvGjsXqB" 
+    },
+    {
+      label: "Seagull หม้อทอดกรอบไร้น้ำมัน ดิจิตอล 3.8 ลิตร",
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zte-mimgbv3vkyrm1b.webp", 
+      clickUrl: "https://s.shopee.co.th/7ptMOV29sd" 
+    },
+    {
+      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง เหมาะสำหรับแพ้นมวัว",
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81ztd-mllv6fxi5rep37.webp",
+      clickUrl: "https://s.shopee.co.th/9fL0ZiMFRJ" 
+    }
+  ];
+
+  // 2. สุ่มเลือกโฆษณา 1 รายการจากคลังด้านบน
+  const randomAd = affiliateAds[Math.floor(Math.random() * affiliateAds.length)];
+
+  // 3. โครงสร้าง Flex Message
   const flexMessage = {
     type: "flex",
     altText: `ผลวิเคราะห์แคลอรี: ${data.name}`,
@@ -158,7 +182,7 @@ async function replyFlexMessage(replyToken, data) {
           { type: "text", text: data.description, wrap: true, color: "#888888", size: "xs", margin: "xl" }
         ]
       },
-      // ส่วน Footer สำหรับใส่รูปแบนเนอร์โฆษณา
+      // 4. นำโฆษณาที่สุ่มได้มาใส่ใน Footer
       footer: {
         type: "box",
         layout: "vertical",
@@ -167,14 +191,14 @@ async function replyFlexMessage(replyToken, data) {
         contents: [
           {
             type: "image",
-            url: "https://img.freepik.com/free-vector/healthy-food-banner-template_23-2149021671.jpg", // ลิงก์รูปโฆษณา (ต้องเป็น https)
+            url: randomAd.imageUrl, 
             size: "full",
             aspectRatio: "20:7",
             aspectMode: "cover",
             action: {
               type: "uri",
-              label: "คลิกเพื่อดูโฆษณา",
-              uri: "https://shopee.co.th/" // ลิงก์ปลายทางเมื่อคนกดรูปโฆษณา
+              label: randomAd.label,
+              uri: randomAd.clickUrl 
             }
           },
           {
