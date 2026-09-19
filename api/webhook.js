@@ -104,12 +104,10 @@ async function analyzeFoodWithGemini(imageBuffer) {
     };
   }
 }
-
-// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 // ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 async function replyFlexMessage(replyToken, data) {
   
-  // 1. คลังโฆษณา Affiliate (เปลี่ยนนามสกุล .webp เป็น .jpg แล้ว)
+  // 1. คลังโฆษณา Affiliate
   const affiliateAds = [
     {
       label: "Xiaomi Mi Body Composition Scale S400 เครื่องชั่งน้ำหนักอัจฉริยะ",
@@ -194,7 +192,7 @@ async function replyFlexMessage(replyToken, data) {
             type: "image",
             url: randomAd.imageUrl, 
             size: "full",
-            aspectRatio: "20:7",
+            aspectRatio: "1:1", // <--- แก้ไขตรงนี้เป็น 1:1 เพื่อให้พอดีกับรูป Shopee
             aspectMode: "cover",
             action: {
               type: "uri",
@@ -215,6 +213,24 @@ async function replyFlexMessage(replyToken, data) {
     }
   };
 
+  // ส่งข้อมูลกลับไปหา LINE
+  const response = await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LINE_TOKEN}`
+    },
+    body: JSON.stringify({
+      replyToken: replyToken,
+      messages: [flexMessage]
+    })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    console.error("LINE API Error:", JSON.stringify(errData));
+  }
+}
   // ส่งข้อมูลกลับไปหา LINE
   const response = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
