@@ -104,6 +104,7 @@ async function analyzeFoodWithGemini(imageBuffer) {
     };
   }
 }
+
 // ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 async function replyFlexMessage(replyToken, data) {
   
@@ -120,7 +121,7 @@ async function replyFlexMessage(replyToken, data) {
       clickUrl: "https://s.shopee.co.th/7ptMOV29sd" 
     },
     {
-      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง",
+      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง เหมาะสำหรับแพ้นมวัว",
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81ztd-mllv6fxi5rep37.jpg",
       clickUrl: "https://s.shopee.co.th/9fL0ZiMFRJ" 
     }
@@ -192,11 +193,11 @@ async function replyFlexMessage(replyToken, data) {
             type: "image",
             url: randomAd.imageUrl, 
             size: "full",
-            aspectRatio: "1:1", // <--- แก้ไขตรงนี้เป็น 1:1 เพื่อให้พอดีกับรูป Shopee
+            aspectRatio: "1:1", 
             aspectMode: "cover",
             action: {
               type: "uri",
-              label: "คลิกเพื่อดูโฆษณา",
+              label: randomAd.label,
               uri: randomAd.clickUrl 
             }
           },
@@ -231,25 +232,7 @@ async function replyFlexMessage(replyToken, data) {
     console.error("LINE API Error:", JSON.stringify(errData));
   }
 }
-  // ส่งข้อมูลกลับไปหา LINE
-  const response = await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${LINE_TOKEN}`
-    },
-    body: JSON.stringify({
-      replyToken: replyToken,
-      messages: [flexMessage]
-    })
-  });
 
-  // เช็กว่า LINE ปฏิเสธข้อความหรือไม่ (ถ้ามีจะแสดงใน Log Vercel)
-  if (!response.ok) {
-    const errData = await response.json();
-    console.error("LINE API Error:", JSON.stringify(errData));
-  }
-}
 // ฟังก์ชันส่งข้อความธรรมดาพร้อมปุ่ม Quick Reply ให้กดเปิดกล้องได้
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
