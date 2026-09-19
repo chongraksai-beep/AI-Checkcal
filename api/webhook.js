@@ -106,23 +106,24 @@ async function analyzeFoodWithGemini(imageBuffer) {
 }
 
 // ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
+// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 async function replyFlexMessage(replyToken, data) {
   
-  // 1. คลังโฆษณา Affiliate
+  // 1. คลังโฆษณา Affiliate (เปลี่ยนนามสกุล .webp เป็น .jpg แล้ว)
   const affiliateAds = [
     {
       label: "Xiaomi Mi Body Composition Scale S400 เครื่องชั่งน้ำหนักอัจฉริยะ",
-      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.webp", 
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.jpg", 
       clickUrl: "https://s.shopee.co.th/BTvGjsXqB" 
     },
     {
       label: "Seagull หม้อทอดกรอบไร้น้ำมัน ดิจิตอล 3.8 ลิตร",
-      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zte-mimgbv3vkyrm1b.webp", 
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zte-mimgbv3vkyrm1b.jpg", 
       clickUrl: "https://s.shopee.co.th/7ptMOV29sd" 
     },
     {
-      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง เหมาะสำหรับแพ้นมวัว",
-      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81ztd-mllv6fxi5rep37.webp",
+      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง",
+      imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81ztd-mllv6fxi5rep37.jpg",
       clickUrl: "https://s.shopee.co.th/9fL0ZiMFRJ" 
     }
   ];
@@ -197,7 +198,7 @@ async function replyFlexMessage(replyToken, data) {
             aspectMode: "cover",
             action: {
               type: "uri",
-              label: randomAd.label,
+              label: "คลิกเพื่อดูโฆษณา",
               uri: randomAd.clickUrl 
             }
           },
@@ -214,7 +215,8 @@ async function replyFlexMessage(replyToken, data) {
     }
   };
 
-  await fetch("https://api.line.me/v2/bot/message/reply", {
+  // ส่งข้อมูลกลับไปหา LINE
+  const response = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -225,8 +227,13 @@ async function replyFlexMessage(replyToken, data) {
       messages: [flexMessage]
     })
   });
-}
 
+  // เช็กว่า LINE ปฏิเสธข้อความหรือไม่ (ถ้ามีจะแสดงใน Log Vercel)
+  if (!response.ok) {
+    const errData = await response.json();
+    console.error("LINE API Error:", JSON.stringify(errData));
+  }
+}
 // ฟังก์ชันส่งข้อความธรรมดาพร้อมปุ่ม Quick Reply ให้กดเปิดกล้องได้
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
