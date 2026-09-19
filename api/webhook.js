@@ -17,17 +17,17 @@ export default async function handler(req, res) {
         const event = events[0];
         const replyToken = event.replyToken;
 
+        // ดักจับรูปภาพ
         if (event.type === "message" && event.message.type === "image") {
           const messageId = event.message.id;
           const imageBuffer = await getLineImage(messageId);
           const aiResult = await analyzeFoodWithGemini(imageBuffer);
           await replyFlexMessage(replyToken, aiResult);
         } 
-       // ถ้าผู้ใช้ส่ง "ข้อความ" ธรรมดา
+        // ดักจับข้อความ
         else if (event.type === "message" && event.message.type === "text") {
           const userText = event.message.text.trim();
           
-          // ตรวจสอบว่าผู้ใช้พิมพ์คำที่ตั้งไว้ หรือกดเมนู Rich Menu ที่ส่งข้อความนี้มาหรือไม่
           if (userText === "โดเนท" || userText === "สนับสนุน" || userText === "Donate") {
             await replyDonateFlex(replyToken);
           } else {
@@ -99,7 +99,6 @@ async function analyzeFoodWithGemini(imageBuffer) {
 }
 
 async function replyFlexMessage(replyToken, data) {
-  
   const affiliateAds = [
     {
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.jpg", 
@@ -182,7 +181,7 @@ async function replyFlexMessage(replyToken, data) {
             aspectMode: "cover",
             action: {
               type: "uri",
-              label: "ดูรายละเอียดสินค้า", // <--- แก้ไขปัญหาตรงนี้ (ห้ามเกิน 20 ตัวอักษร)
+              label: "ดูรายละเอียดสินค้า", 
               uri: randomAd.clickUrl 
             }
           },
@@ -213,7 +212,88 @@ async function replyFlexMessage(replyToken, data) {
 
   if (!response.ok) {
     const errData = await response.json();
-    console.error("LINE API Error:", JSON.stringify(errData));
+    console.error("LINE API Error (Flex):", JSON.stringify(errData));
+  }
+}
+
+// ฟังก์ชันส่งการ์ดโดเนท
+async function replyDonateFlex(replyToken) {
+  const flexMessage = {
+    type: "flex",
+    altText: "สนับสนุนนักพัฒนา (Donate)",
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "☕ สนับสนุนนักพัฒนา", weight: "bold", color: "#1DB446", size: "md" }
+        ]
+      },
+      hero: {
+        type: "image",
+        url: "https://promptpay.io/0985058698.png", // ดึง QR Code จาก Promptpay.io อัตโนมัติ
+        size: "full",
+        aspectRatio: "1:1",
+        aspectMode: "contain",
+        action: {
+          type: "uri",
+          uri: "https://promptpay.io/0985058698.png"
+        }
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: "พร้อมเพย์ (PromptPay)", weight: "bold", size: "sm", color: "#555555" },
+          { type: "text", text: "098-505-8698", size: "xl", weight: "bold", color: "#111111", margin: "md" },
+          { type: "text", text: "ขอบคุณที่สนับสนุนครับ 🙏", size: "xs", color: "#888888", margin: "sm" }
+        ]
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        spacing: "sm",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            color: "#1DB446",
+            action: {
+              type: "clipboard",
+              label: "📋 คัดลอกเบอร์พร้อมเพย์",
+              clipboardText: "0985058698" 
+            }
+          },
+          {
+            type: "text",
+            text: "*แตะที่รูป QR Code เพื่อบันทึกลงเครื่อง",
+            wrap: true,
+            size: "xxs",
+            color: "#aaaaaa",
+            align: "center",
+            margin: "md"
+          }
+        ]
+      }
+    }
+  };
+
+  const response = await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LINE_TOKEN}`
+    },
+    body: JSON.stringify({
+      replyToken: replyToken,
+      messages: [flexMessage]
+    })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json();
+    console.error("LINE API Error (Donate):", JSON.stringify(errData));
   }
 }
 
@@ -248,81 +328,6 @@ async function replyText(replyToken, text) {
           ]
         }
       }]
-    })
-  });
-}
-// ฟังก์ชันส่งการ์ด Donate
-async function replyDonateFlex(replyToken) {
-  const flexMessage = {
-    type: "flex",
-    altText: "สนับสนุนนักพัฒนา (Donate)",
-    contents: {
-      type: "bubble",
-      header: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "☕ สนับสนุนนักพัฒนา", weight: "bold", color: "#1DB446", size: "md" }
-        ]
-      },
-      hero: {
-        type: "image",
-        url: "https://ลิงก์รูป_QR_CODE_ของคุณ.jpg", // <--- 1. ใส่ลิงก์รูป QR Code พร้อมเพย์ของคุณที่นี่
-        size: "full",
-        aspectRatio: "1:1",
-        aspectMode: "cover",
-        action: {
-          type: "uri",
-          uri: "https://ลิงก์รูป_QR_CODE_ของคุณ.jpg" // <--- ใส่ลิงก์เดิมซ้ำ เพื่อให้พอกดรูปแล้วขยายเซฟได้
-        }
-      },
-      body: {
-        type: "box",
-        layout: "vertical",
-        contents: [
-          { type: "text", text: "พร้อมเพย์ (PromptPay)", weight: "bold", size: "sm", color: "#555555" },
-          { type: "text", text: "08X-XXX-XXXX", size: "xl", weight: "bold", color: "#111111", margin: "md" }, // <--- 2. พิมพ์เบอร์โทรโชว์ตรงนี้
-          { type: "text", text: "ชื่อบัญชี: [ใส่ชื่อ นามสกุลของคุณ]", size: "xs", color: "#888888", margin: "sm" } // <--- 3. พิมพ์ชื่อบัญชี
-        ]
-      },
-      footer: {
-        type: "box",
-        layout: "vertical",
-        spacing: "sm",
-        contents: [
-          {
-            type: "button",
-            style: "primary",
-            color: "#1DB446",
-            action: {
-              type: "clipboard",
-              label: "📋 คัดลอกเบอร์พร้อมเพย์",
-              clipboardText: "0801234567" // <--- 4. ใส่เบอร์โทร (ตัวเลขติดกัน) ที่ต้องการให้ก๊อปปี้เมื่อกดปุ่ม
-            }
-          },
-          {
-            type: "text",
-            text: "*แตะที่รูป QR Code เพื่อบันทึกลงเครื่อง",
-            wrap: true,
-            size: "xxs",
-            color: "#aaaaaa",
-            align: "center",
-            margin: "md"
-          }
-        ]
-      }
-    }
-  };
-
-  await fetch("https://api.line.me/v2/bot/message/reply", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${LINE_TOKEN}`
-    },
-    body: JSON.stringify({
-      replyToken: replyToken,
-      messages: [flexMessage]
     })
   });
 }
