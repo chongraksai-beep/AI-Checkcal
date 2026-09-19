@@ -13,25 +13,16 @@ export default async function handler(req, res) {
     try {
       const events = req.body.events;
       
-      // ตรวจสอบว่ามี Event ส่งมา และเป็นข้อความหรือไม่
       if (events && events.length > 0) {
         const event = events[0];
         const replyToken = event.replyToken;
 
-        // ถ้าผู้ใช้ส่ง "รูปภาพ" เข้ามา
         if (event.type === "message" && event.message.type === "image") {
           const messageId = event.message.id;
-          
-          // 1. ไปดาวน์โหลดรูปภาพจากเซิร์ฟเวอร์ LINE
           const imageBuffer = await getLineImage(messageId);
-          
-          // 2. ส่งรูปให้ Gemini AI วิเคราะห์
           const aiResult = await analyzeFoodWithGemini(imageBuffer);
-          
-          // 3. สร้างและส่ง Flex Message กลับไปหาผู้ใช้
           await replyFlexMessage(replyToken, aiResult);
         } 
-        // ถ้าผู้ใช้ส่ง "ข้อความ" ธรรมดา
         else if (event.type === "message" && event.message.type === "text") {
           await replyText(replyToken, "ส่งรูปอาหารของคุณมาให้เราวิเคราะห์แคลอรีได้เลยครับ! 📸🍽️");
         }
@@ -48,7 +39,6 @@ export default async function handler(req, res) {
 // ฟังก์ชันย่อยสำหรับทำงานต่างๆ
 // ------------------------------------------------------------------
 
-// ฟังก์ชันโหลดรูปจาก LINE
 async function getLineImage(messageId) {
   const response = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
     headers: {
@@ -59,12 +49,9 @@ async function getLineImage(messageId) {
   return Buffer.from(arrayBuffer);
 }
 
-// ฟังก์ชันส่งรูปให้ Gemini วิเคราะห์
 async function analyzeFoodWithGemini(imageBuffer) {
-  // ใช้โมเดลรุ่นใหม่ล่าสุดตามที่ Google รองรับ
   const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
   
-  // สั่ง AI ให้ตอบกลับมาเป็น JSON เพื่อง่ายต่อการเอาไปจัดลง Flex Message
   const prompt = `
     คุณคือนักโภชนาการเชี่ยวชาญอาหารไทย วิเคราะห์รูปอาหารนี้และประเมินแคลอรี
     จงตอบกลับมาเป็น JSON format ตามโครงสร้างนี้เท่านั้น (ห้ามมีข้อความอื่นปน):
@@ -88,14 +75,12 @@ async function analyzeFoodWithGemini(imageBuffer) {
   const result = await model.generateContent([prompt, imagePart]);
   const text = result.response.text();
   
-  // ลบตัวครอบ Markdown ของ JSON (ถ้า AI ใส่มา) เพื่อให้แปลงเป็น Object ได้
   const cleanJsonText = text.replace(/```json/g, "").replace(/```/g, "").trim();
   
   try {
     return JSON.parse(cleanJsonText);
   } catch (e) {
     console.error("JSON Parse Error:", e, text);
-    // กรณี AI ดื้อ ไม่ยอมตอบเป็น JSON
     return {
       name: "ไม่สามารถระบุได้ชัดเจน",
       calories: "N/A",
@@ -105,32 +90,25 @@ async function analyzeFoodWithGemini(imageBuffer) {
   }
 }
 
-// ฟังก์ชันส่ง Flex Message กลับไปที่ LINE (แบบสุ่มโฆษณา Affiliate)
 async function replyFlexMessage(replyToken, data) {
   
-  // 1. คลังโฆษณา Affiliate
   const affiliateAds = [
     {
-      label: "Xiaomi Mi Body Composition Scale S400 เครื่องชั่งน้ำหนักอัจฉริยะ",
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.jpg", 
       clickUrl: "https://s.shopee.co.th/BTvGjsXqB" 
     },
     {
-      label: "Seagull หม้อทอดกรอบไร้น้ำมัน ดิจิตอล 3.8 ลิตร",
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zte-mimgbv3vkyrm1b.jpg", 
       clickUrl: "https://s.shopee.co.th/7ptMOV29sd" 
     },
     {
-      label: "BAAM ISO - SOY (5 LB) | โปรตีนจากถั่วเหลือง เหมาะสำหรับแพ้นมวัว",
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81ztd-mllv6fxi5rep37.jpg",
       clickUrl: "https://s.shopee.co.th/9fL0ZiMFRJ" 
     }
   ];
 
-  // 2. สุ่มเลือกโฆษณา 1 รายการจากคลังด้านบน
   const randomAd = affiliateAds[Math.floor(Math.random() * affiliateAds.length)];
 
-  // 3. โครงสร้าง Flex Message
   const flexMessage = {
     type: "flex",
     altText: `ผลวิเคราะห์แคลอรี: ${data.name}`,
@@ -182,7 +160,6 @@ async function replyFlexMessage(replyToken, data) {
           { type: "text", text: data.description, wrap: true, color: "#888888", size: "xs", margin: "xl" }
         ]
       },
-      // 4. นำโฆษณาที่สุ่มได้มาใส่ใน Footer
       footer: {
         type: "box",
         layout: "vertical",
@@ -197,7 +174,7 @@ async function replyFlexMessage(replyToken, data) {
             aspectMode: "cover",
             action: {
               type: "uri",
-              label: randomAd.label,
+              label: "ดูรายละเอียดสินค้า", // <--- แก้ไขปัญหาตรงนี้ (ห้ามเกิน 20 ตัวอักษร)
               uri: randomAd.clickUrl 
             }
           },
@@ -214,7 +191,6 @@ async function replyFlexMessage(replyToken, data) {
     }
   };
 
-  // ส่งข้อมูลกลับไปหา LINE
   const response = await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
     headers: {
@@ -233,7 +209,6 @@ async function replyFlexMessage(replyToken, data) {
   }
 }
 
-// ฟังก์ชันส่งข้อความธรรมดาพร้อมปุ่ม Quick Reply ให้กดเปิดกล้องได้
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
