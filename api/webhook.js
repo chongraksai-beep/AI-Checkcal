@@ -24,11 +24,12 @@ export default async function handler(req, res) {
           const aiResult = await analyzeFoodWithGemini(imageBuffer);
           await replyFlexMessage(replyToken, aiResult);
         } 
-        // ดักจับข้อความหรือปุ่ม Quick Reply ที่ผู้ใช้กดส่งมา
+        // ดักจับข้อความหรือปุ่ม Quick Reply
         else if (event.type === "message" && event.message.type === "text") {
-          const userText = event.message.text.trim();
+          // ใช้ includes เพื่อให้ดักคำได้แม่นยำขึ้น แม้ผู้ใช้จะพิมพ์เว้นวรรค
+          const userText = event.message.text.trim().toLowerCase();
           
-          if (userText === "โดเนท" || userText === "สนับสนุน" || userText === "Donate") {
+          if (userText.includes("โดเนท") || userText.includes("สนับสนุน") || userText.includes("donate")) {
             await replyDonateFlex(replyToken);
           } else {
             await replyText(replyToken, "ส่งรูปอาหารของคุณมาให้เราวิเคราะห์แคลอรีได้เลยครับ! 📸🍽️");
@@ -65,7 +66,7 @@ async function analyzeFoodWithGemini(imageBuffer) {
     จงตอบกลับมาเป็น JSON format ตามโครงสร้างนี้เท่านั้น (ห้ามมีข้อความอื่นปน):
     {
       "name": "ชื่ออาหาร",
-      "calories": "ตัวเลขแคลอรีโดยประมาณ (เช่น 450 - 500)",
+      "calories": "ตัวเลขแคลอรีโดยประมาณ (เช่น 450)",
       "carb": "ปริมาณคาร์บ (g)",
       "protein": "ปริมาณโปรตีน (g)",
       "fat": "ปริมาณไขมัน (g)",
@@ -91,7 +92,7 @@ async function analyzeFoodWithGemini(imageBuffer) {
     console.error("JSON Parse Error:", e, text);
     return {
       name: "ไม่สามารถระบุได้ชัดเจน",
-      calories: "N/A",
+      calories: "0",
       carb: "-", protein: "-", fat: "-",
       description: "ขออภัยครับ กรุณาส่งรูปที่เห็นอาหารชัดเจนกว่านี้อีกนิดนะครับ"
     };
@@ -99,6 +100,7 @@ async function analyzeFoodWithGemini(imageBuffer) {
 }
 
 async function replyFlexMessage(replyToken, data) {
+  // ระบบสุ่มโฆษณา Affiliate
   const affiliateAds = [
     {
       imageUrl: "https://down-th.img.susercontent.com/file/th-11134207-81zti-mg6dafkmxlajac.jpg", 
@@ -115,6 +117,16 @@ async function replyFlexMessage(replyToken, data) {
   ];
 
   const randomAd = affiliateAds[Math.floor(Math.random() * affiliateAds.length)];
+
+  // คำนวณเปอร์เซ็นต์แคลอรีที่กินเทียบกับ 2,000 kcal ต่อวัน
+  let mealKcal = 0;
+  let percentText = "พลังงานที่แนะนำต่อวันคือ 2,000 kcal";
+  const match = data.calories.match(/\d+/); // ดึงตัวเลขออกมาจากข้อความที่ AI ตอบ
+  if (match) {
+    mealKcal = parseInt(match[0], 10);
+    const percent = Math.round((mealKcal / 2000) * 100);
+    percentText = `มื้อนี้คิดเป็น ${percent}% ของพลังงานที่แนะนำต่อวัน (2,000 kcal)`;
+  }
 
   const flexMessage = {
     type: "flex",
@@ -162,6 +174,19 @@ async function replyFlexMessage(replyToken, data) {
                   { type: "text", text: `${data.fat} g`, wrap: true, color: "#666666", size: "sm", flex: 3 }
                 ]
               }
+            ]
+          },
+          // กล่องคำนวณแคลอรีต่อวันที่เพิ่มใหม่
+          {
+            type: "box",
+            layout: "vertical",
+            margin: "xl",
+            paddingAll: "md",
+            backgroundColor: "#f9f9f9",
+            cornerRadius: "md",
+            contents: [
+              { type: "text", text: "💡 สรุปโควตาแคลอรีต่อวัน", weight: "bold", size: "sm", color: "#111111" },
+              { type: "text", text: percentText, size: "xs", color: "#666666", wrap: true, margin: "sm" }
             ]
           },
           { type: "text", text: data.description, wrap: true, color: "#888888", size: "xs", margin: "xl" }
@@ -247,7 +272,7 @@ async function replyDonateFlex(replyToken) {
         contents: [
           { type: "text", text: "พร้อมเพย์ (PromptPay)", weight: "bold", size: "sm", color: "#555555" },
           { type: "text", text: "098-505-8698", size: "xl", weight: "bold", color: "#111111", margin: "md" },
-          { type: "text", text: "ขอบคุณที่สนับสนุนครับ 🙏", size: "xs", color: "#888888", margin: "sm" }
+          { type: "text", text: "ขอบคุณที่สนับสนุนการพัฒนาบอตครับ 🙏", size: "xs", color: "#888888", margin: "sm", wrap: true }
         ]
       },
       footer: {
@@ -297,7 +322,7 @@ async function replyDonateFlex(replyToken) {
   }
 }
 
-// ฟังก์ชันส่งข้อความพร้อมปุ่ม Quick Reply (เพิ่มปุ่มโดเนทเข้าไปแล้ว)
+// ฟังก์ชันส่งข้อความพร้อมปุ่ม Quick Reply
 async function replyText(replyToken, text) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
